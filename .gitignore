@@ -1,0 +1,48 @@
+# Dependencies
+node_modules/
+
+# Build output
+backend-project/public/css/output.css
+
+
+# SQLite database files
+*.db
+*.sqlite
+*.sqlite3
+*.sqlite-shm
+*.sqlite-wal
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Test coverage
+coverage/
+
+# Temp files
+*.tmp
+*.swp
+
+.claude/*.local.json
+public/css/output.css
+qa.md
+
+# 測試與文件衍生物（不 commit）
+tests/.tmp/
+tests/e2e/screenshots/
+test-results/
+playwright-report/
+postman/

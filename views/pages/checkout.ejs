@@ -1,0 +1,148 @@
+<div id="app">
+  <h1 class="text-2xl font-bold text-text-primary mb-6" style="font-family: 'Noto Serif TC', serif;">結帳</h1>
+
+  <div v-if="loading" class="flex justify-center py-12">
+    <div class="w-8 h-8 border-4 border-rose-primary border-t-transparent rounded-full animate-spin"></div>
+  </div>
+
+  <div v-else class="flex flex-col lg:flex-row gap-8">
+    <!-- Left: Form -->
+    <div class="lg:w-3/5">
+      <div class="bg-white rounded-2xl shadow-sm p-6">
+        <h2 class="font-medium text-text-primary mb-4">收件資訊</h2>
+        <div class="space-y-4">
+          <div>
+            <label class="block text-sm text-text-secondary mb-1">收件人姓名</label>
+            <input
+              v-model="form.recipientName"
+              type="text"
+              placeholder="請輸入收件人姓名"
+              class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-rose-primary transition-colors"
+              :class="{ 'border-red-400': errors.recipientName }"
+            />
+            <p v-if="errors.recipientName" class="text-red-500 text-xs mt-1">{{ errors.recipientName }}</p>
+          </div>
+          <div>
+            <label class="block text-sm text-text-secondary mb-1">Email</label>
+            <input
+              v-model="form.recipientEmail"
+              type="email"
+              placeholder="請輸入 Email"
+              class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-rose-primary transition-colors"
+              :class="{ 'border-red-400': errors.recipientEmail }"
+            />
+            <p v-if="errors.recipientEmail" class="text-red-500 text-xs mt-1">{{ errors.recipientEmail }}</p>
+          </div>
+          <div>
+            <label class="block text-sm text-text-secondary mb-1">收件地址</label>
+            <input
+              v-model="form.recipientAddress"
+              type="text"
+              placeholder="請輸入收件地址"
+              class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-rose-primary transition-colors"
+              :class="{ 'border-red-400': errors.recipientAddress }"
+            />
+            <p v-if="errors.recipientAddress" class="text-red-500 text-xs mt-1">{{ errors.recipientAddress }}</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-2xl shadow-sm p-6 mt-6">
+        <h2 class="font-medium text-text-primary mb-4">配送方式</h2>
+        <div class="space-y-3">
+          <label
+            v-for="method in shippingMethods"
+            :key="method.value"
+            class="flex items-center justify-between border border-gray-200 rounded-lg px-3 py-3 cursor-pointer hover:border-rose-primary transition-colors"
+            :class="{ 'border-rose-primary bg-rose-50/40': form.shippingMethod === method.value }"
+          >
+            <span class="flex items-center gap-2 text-sm text-text-primary">
+              <input type="radio" v-model="form.shippingMethod" :value="method.value" class="accent-rose-primary" />
+              {{ method.label }}
+            </span>
+            <span class="text-sm text-text-secondary">
+              NT$ {{ method.baseFee.toLocaleString() }}
+              <span v-if="method.freeShippingEligible" class="text-xs text-text-muted">
+                （滿 NT$ {{ freeShippingThreshold.toLocaleString() }} 免運）
+              </span>
+            </span>
+          </label>
+        </div>
+
+        <h2 class="font-medium text-text-primary mt-6 mb-4">附加服務</h2>
+        <div class="space-y-3">
+          <label class="flex items-center justify-between text-sm cursor-pointer">
+            <span class="flex items-center gap-2 text-text-primary">
+              <input type="checkbox" v-model="form.isRemote" class="accent-rose-primary" />
+              偏遠地區配送
+            </span>
+            <span class="text-text-secondary">+ NT$ {{ remoteAreaSurcharge.toLocaleString() }}</span>
+          </label>
+          <label class="flex items-center justify-between text-sm cursor-pointer">
+            <span class="flex items-center gap-2 text-text-primary">
+              <input type="checkbox" v-model="form.isUrgent" class="accent-rose-primary" />
+              當日急件
+            </span>
+            <span class="text-text-secondary">+ NT$ {{ sameDayUrgentSurcharge.toLocaleString() }}</span>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right: Summary -->
+    <div class="lg:w-2/5">
+      <div class="bg-white rounded-2xl shadow-sm p-6 sticky top-24">
+        <h2 class="font-medium text-text-primary mb-4">訂單摘要</h2>
+        <div class="space-y-3 mb-4">
+          <div v-for="item in cartItems" :key="item.id" class="flex justify-between text-sm">
+            <span class="text-text-secondary">{{ item.product.name }} x {{ item.quantity }}</span>
+            <span class="text-text-primary">NT$ {{ (item.product.price * item.quantity).toLocaleString() }}</span>
+          </div>
+        </div>
+        <div class="border-t border-gray-100 pt-3 space-y-2 text-sm">
+          <div class="flex justify-between">
+            <span class="text-text-secondary">商品小計</span>
+            <span>NT$ {{ cartTotal.toLocaleString() }}</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-text-secondary">
+              {{ quote ? quote.methodLabel : '運費' }}
+              <span v-if="quote && quote.freeShipping" class="text-xs text-rose-primary">（滿額免運）</span>
+            </span>
+            <span>
+              <span v-if="quote && quote.freeShipping" class="text-text-muted line-through mr-1">
+                NT$ {{ quote.baseFee.toLocaleString() }}
+              </span>
+              NT$ {{ quote ? (quote.shippingFee - quote.surcharge).toLocaleString() : '—' }}
+            </span>
+          </div>
+          <div v-if="quote && quote.remoteFee > 0" class="flex justify-between">
+            <span class="text-text-secondary">偏遠地區附加費</span>
+            <span>NT$ {{ quote.remoteFee.toLocaleString() }}</span>
+          </div>
+          <div v-if="quote && quote.urgentFee > 0" class="flex justify-between">
+            <span class="text-text-secondary">當日急件附加費</span>
+            <span>NT$ {{ quote.urgentFee.toLocaleString() }}</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-text-secondary">運費合計</span>
+            <span>{{ quote && quote.shippingFee === 0 ? '免運' : 'NT$ ' + (quote ? quote.shippingFee.toLocaleString() : '—') }}</span>
+          </div>
+        </div>
+        <div class="border-t border-gray-100 pt-3 mt-3 flex justify-between items-center">
+          <span class="font-bold text-text-primary">總計</span>
+          <span class="font-bold text-xl text-rose-primary">
+            NT$ {{ (quote ? quote.total : cartTotal).toLocaleString() }}
+          </span>
+        </div>
+        <button
+          @click="submitOrder"
+          :disabled="submitting"
+          class="w-full mt-4 bg-rose-primary text-white py-3 rounded-full text-sm font-medium hover:bg-rose-dark transition-colors disabled:opacity-50"
+        >
+          {{ submitting ? '處理中...' : '確認送出訂單' }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
